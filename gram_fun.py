@@ -1,27 +1,25 @@
 import networkx as nx
-import matplotlib.pyplot as plt
 import numpy as np
 from itertools import combinations
 
 
 def checkRequirements(G, k, l):
+    # for every node
     for v in G.nodes():
         neighbors = list(G.neighbors(v))
 
+        # any subset of cardinality |S| <= l of neighbors
         subsets = []
         for i in range(1, l + 1):
             subsets += combinations(neighbors, i)
 
-
+        # there are at least k distinct vertices
         for s in subsets:
             count = 0
 
             for i in G.nodes():
                 if set(s).issubset(set(G.neighbors(i))):
                     count += 1
-
-                    if count >= k:
-                        break
 
             if count < k:
                 return False
@@ -39,6 +37,9 @@ def commonNeighbors(G, V):
     com : the set of common neighbors of all vertices of V in G.
     """
 
+    if len(V) < 1:
+        return None
+
     # TODO: currently assuming that |V| >= 1
     com = set(G.neighbors(V[0]))
 
@@ -52,7 +53,7 @@ def distNeighbors(distances, v, dist):
     """
     Parameters:
     distances : dictionary containing for each node the dict with the distances from all other nodes.
-    v : the node we are using as our starting point.
+    v : index of the node we are using as our starting point.
     dist : the distance we are interested in.
 
     Returns:
@@ -83,20 +84,26 @@ def addEdges(G, k, l, n):
     # TODO: is this the most efficient approach? gets pretty big for large n
     node_dist = dict(nx.all_pairs_shortest_path_length(G))
 
+    # used to access the costs matrix if node names are not integers in [0, n-1]
+    # TODO: is there another way to do this?
+    node_index_mapping = {n: i for n, i in zip(G2.nodes(), range(n))}
+
     if l == 1:
         while flag == 1 and dist < n - 1:
             flag = 0
-            for i in range(n):
-                if G2.degree[i] < k:
+            for curr_node in G.nodes():
+                if G2.degree[curr_node] < k:
                     # connect the current node to all neighbors at distance dist + 1
-                    neighbors = distNeighbors(node_dist, i, dist + 1)
+                    neighbors = distNeighbors(node_dist, curr_node, dist + 1)
                     for v in neighbors:
-                        G2.add_edge(i, v)
+                        G2.add_edge(curr_node, v)
 
                         # decrease the cost of the edges
                         # keeping in mind that the matrix is symmetric
-                        costs[i][v] -= 1
-                        costs[v][i] -= 1
+                        vi = node_index_mapping[curr_node]
+                        vj = node_index_mapping[v]
+                        costs[vi][vj] -= 1
+                        costs[vj][vi] -= 1
 
                     flag = 1
 
@@ -106,31 +113,35 @@ def addEdges(G, k, l, n):
         while flag == 1 and dist < n:
             flag = 0
 
-            for i in range(n):
-                neighbors = list(G.neighbors(i))
+            for curr_node in G.nodes():
+                neighbors = list(G.neighbors(curr_node))
 
                 if len(commonNeighbors(G2, neighbors)) < k:
                     # connect all vertices in neighbors to some vertices in
                     # V' = G.neighbors(i, dist) in G2 with minimum number of new edges
-                    eligible_vertices = distNeighbors(node_dist, i, dist)
+                    eligible_vertices = distNeighbors(node_dist, curr_node, dist)
 
                     for dest in eligible_vertices:
-                        if len(commonNeighbors(G2, neighbors)) >= k:    # condition is satisfied, no more edges are required
-                            break
-
                         for v in neighbors:
                             if v == dest:   # do not add self loop
                                 continue
 
                             G2.add_edge(v, dest)
-                            costs[v][dest] -= 1
-                            costs[dest][v] -= 1
+
+                            vi = node_index_mapping[v]
+                            vj = node_index_mapping[dest]
+                            costs[vi][vj] -= 1
+                            costs[vj][vi] -= 1
+
+                        if len(commonNeighbors(G2, neighbors)) >= k:    # condition is satisfied, no more edges are required
+                            break
 
                     flag = 1
 
             dist += 1
 
     return G2, costs
+
 
 def isSafe(G, G2, Gp, e, k, l):
     """
@@ -145,29 +156,31 @@ def isSafe(G, G2, Gp, e, k, l):
     safe : safety flag.
     """
 
-    for v in G.neighbors(e[0]):
-        shared_neighbors = set(G.neighbors(v)).intersection(G2.neighbors(e[1]))
+    v_i = e[0]
+    v_j = e[1]
 
-        subsets = []
-        for i in range(1, min(l, len(shared_neighbors) + 1)):
+    for ni in G.neighbors(v_i):
+        shared_neighbors = set(G.neighbors(ni)).intersection(set(G2.neighbors(v_j)))
+        
+        for i in range(1, min(l, len(shared_neighbors)) + 1):
             c = combinations(shared_neighbors, i)
-            subsets += list(filter(lambda x: e[0] in x, c))
 
-        for s in subsets:
-            if len(commonNeighbors(Gp, s)) < k:
-                return False
+            for curr in c:
+                if v_i in curr:
+                    # this is a valid subset, check if is has at least k common neighbors
+                    if len(commonNeighbors(Gp, curr)) < k:
+                        return False
 
-    for v in G.neighbors(e[1]):
-        shared_neighbors = set(G.neighbors(v)).intersection(G2.neighbors(e[0]))
-       
-        subsets = []
-        for i in range(1, min(l, len(shared_neighbors) + 1)):
+    for nj in G.neighbors(v_j):
+        shared_neighbors = set(G.neighbors(nj)).intersection(set(G2.neighbors(v_i)))
+
+        for i in range(1, min(l, len(shared_neighbors)) + 1):
             c = combinations(shared_neighbors, i)
-            subsets += list(filter(lambda x: e[1] in x, c))
 
-        for s in subsets:
-            if len(commonNeighbors(Gp, s)) < k:
-                return False
+            for curr in c:
+                if v_i in curr:
+                    if len(commonNeighbors(Gp, curr)) < k:
+                        return False
 
     return True
 
@@ -188,50 +201,20 @@ def removeEdges(G, G2, costs, k, l):
 
     # for each "new" edge, in decreasing order of costs
     new_edges = G2.edges - G.edges  # TODO: EdgeView supports set operations, check where we can use them in previous impl.
-    new_edges = sorted(new_edges, key=lambda x: costs[x[0]][x[1]], reverse=True)
+    node_index_mapping = {n: i for n, i in zip(G2.nodes(), range(G2.order()))}
+    new_edges = sorted(new_edges, key=lambda x: int(costs[node_index_mapping[x[0]]][node_index_mapping[x[1]]]), reverse=True)
 
     for e in new_edges:
         if l == 1:
             if Gp.degree(e[0]) > k and Gp.degree(e[1]) > k:
-                Gp.remove_edge(e)
+                Gp.remove_edge(*e)
 
         else: # typo in the paper?
-            Gp.update(edges=G2.edges - [e])
+            Gp.remove_edge(*e)
 
             if isSafe(G, G2, Gp, e, k, l):
-                G2.update(edges=Gp.edges)
+                G2.remove_edge(*e)
             else:
-                Gp.add_edge(e)
+                Gp.add_edge(*e)
 
     return Gp
-
-
-            
-
-
-# not a great choice for the generator, as all nodes will have the same degree
-# graph_order = 10
-# k = 2
-# l = 2
-# G = nx.generators.connected_watts_strogatz_graph(graph_order, 4, 0.35, seed=1)
-
-# print(f'G satisfies k={k}, l={l}: {checkRequirements(G, k, l)}')
-
-# nx.draw(G, with_labels=True)
-# plt.show()
-
-
-# G2, costs = addEdges(G, k, l, graph_order)
-
-# print(f'G2 satisfies k={k}, l={l}: {checkRequirements(G2, k, l)}')
-
-# nx.draw(G2, with_labels=True)
-# plt.show()
-
-# Gp = removeEdges(G, G2, costs, k, l)
-
-# print(f'Gp satisfies k={k}, l={l}: {checkRequirements(Gp, k, l)}')
-
-# nx.draw(Gp, with_labels=True)
-# plt.show()
-
