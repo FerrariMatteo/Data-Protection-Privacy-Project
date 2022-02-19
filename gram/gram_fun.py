@@ -18,13 +18,13 @@ def checkRequirements(G, k, l):
             count = 0
 
             for i in G.nodes():
-                print(list(sorted(G.neighbors(i))))
+                # print(list(sorted(G.neighbors(i))))
                 if set(s).issubset(set(G.neighbors(i))):
                     count += 1
 
             if count < k:
-                print(f'Constraint not verified at node {v})')
-                print(f'Subset {s} has only count={count}')
+                # print(f'Constraint not verified at node {v})')
+                # print(f'Subset {s} has only count={count}')
                 return False
 
         return True
@@ -218,14 +218,14 @@ def removeEdges(G, G2, costs, k, l):
         if l == 1:
             if Gp.degree(e[0]) > k and Gp.degree(e[1]) > k:
                 Gp.remove_edge(*e)
-                print('Removing edge: ', e)
+                # print('Removing edge: ', e)
 
         else: # typo in the paper?
             Gp.remove_edge(*e)
 
             if isSafe(G, G2, Gp, e, k, l):
                 G2.remove_edge(*e)
-                print('Removing edge: ', e)
+                # print('Removing edge: ', e)
             else:
                 Gp.add_edge(*e)
 
