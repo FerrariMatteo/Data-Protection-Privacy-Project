@@ -18,10 +18,13 @@ def checkRequirements(G, k, l):
             count = 0
 
             for i in G.nodes():
+                print(list(sorted(G.neighbors(i))))
                 if set(s).issubset(set(G.neighbors(i))):
                     count += 1
 
             if count < k:
+                print(f'Constraint not verified at node {v})')
+                print(f'Subset {s} has only count={count}')
                 return False
 
         return True
@@ -120,21 +123,28 @@ def addEdges(G, k, l, n):
                     # connect all vertices in neighbors to some vertices in
                     # V' = G.neighbors(i, dist) in G2 with minimum number of new edges
                     eligible_vertices = distNeighbors(node_dist, curr_node, dist)
+                    involved_edges = set()
 
                     for dest in eligible_vertices:
                         for v in neighbors:
-                            if v == dest:   # do not add self loop
+                            if v == dest and dist == 1:   # do not add self loop
                                 continue
 
-                            G2.add_edge(v, dest)
+                            if not G2.has_edge(v, dest):
+                                G2.add_edge(v, dest)
 
-                            vi = node_index_mapping[v]
-                            vj = node_index_mapping[dest]
-                            costs[vi][vj] -= 1
-                            costs[vj][vi] -= 1
+                            involved_edges = involved_edges.union({frozenset((v, dest))})      
 
                         if len(commonNeighbors(G2, neighbors)) >= k:    # condition is satisfied, no more edges are required
                             break
+
+                    # decrease the cost of the involved edges
+                    for e in involved_edges:
+                        elems = list(e)
+                        i = node_index_mapping[elems[0]]
+                        j = node_index_mapping[elems[1]]
+                        costs[i][j] -= 1
+                        costs[j][i] -= 1
 
                     flag = 1
 
@@ -208,12 +218,14 @@ def removeEdges(G, G2, costs, k, l):
         if l == 1:
             if Gp.degree(e[0]) > k and Gp.degree(e[1]) > k:
                 Gp.remove_edge(*e)
+                print('Removing edge: ', e)
 
         else: # typo in the paper?
             Gp.remove_edge(*e)
 
             if isSafe(G, G2, Gp, e, k, l):
                 G2.remove_edge(*e)
+                print('Removing edge: ', e)
             else:
                 Gp.add_edge(*e)
 
