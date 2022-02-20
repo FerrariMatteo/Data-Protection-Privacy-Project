@@ -28,7 +28,7 @@ def checkRequirements(G, k, l):
                 return False
 
         return True
-            
+
 
 def commonNeighbors(G, V):
     """
@@ -133,9 +133,10 @@ def addEdges(G, k, l, n):
                             if not G2.has_edge(v, dest):
                                 G2.add_edge(v, dest)
 
-                            involved_edges = involved_edges.union({frozenset((v, dest))})      
+                            involved_edges = involved_edges.union({frozenset((v, dest))})
 
-                        if len(commonNeighbors(G2, neighbors)) >= k:    # condition is satisfied, no more edges are required
+                        # condition is satisfied, no more edges are required
+                        if len(commonNeighbors(G2, neighbors)) >= k:
                             break
 
                     # decrease the cost of the involved edges
@@ -171,11 +172,13 @@ def isSafe(G, G2, Gp, e, k, l):
 
     for ni in G.neighbors(v_i):
         shared_neighbors = set(G.neighbors(ni)).intersection(set(G2.neighbors(v_j)))
-        
-        for i in range(1, min(l, len(shared_neighbors)) + 1):
-            c = combinations(shared_neighbors, i)
 
-            for curr in c:
+        for i in range(1, min(l, len(shared_neighbors)) + 1):
+
+            # subsets of size `i`
+            subsets = combinations(shared_neighbors, i)
+
+            for curr in subsets:
                 if v_i in curr:
                     # this is a valid subset, check if is has at least k common neighbors
                     if len(commonNeighbors(Gp, curr)) < k:
