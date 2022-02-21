@@ -27,7 +27,7 @@ def checkRequirements(G, k, l):
                 # print(f'Subset {s} has only count={count}')
                 return False
 
-        return True
+    return True
 
 
 def commonNeighbors(G, V):
