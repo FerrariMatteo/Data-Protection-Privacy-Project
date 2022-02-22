@@ -4,6 +4,7 @@ from itertools import combinations
 
 
 def checkRequirements(G, k, l):
+
     # for every node
     for v in G.nodes():
         neighbors = list(G.neighbors(v))
@@ -18,13 +19,10 @@ def checkRequirements(G, k, l):
             count = 0
 
             for i in G.nodes():
-                # print(list(sorted(G.neighbors(i))))
                 if set(s).issubset(set(G.neighbors(i))):
                     count += 1
 
             if count < k:
-                # print(f'Constraint not verified at node {v})')
-                # print(f'Subset {s} has only count={count}')
                 return False
 
     return True
@@ -62,7 +60,6 @@ def distNeighbors(distances, v, dist):
     Returns:
     The neighbors at distance dist of node v.
     """
-
     return [n for n in distances[v] if distances[v][n] == dist]
 
 
@@ -166,7 +163,6 @@ def isSafe(G, G2, Gp, e, k, l):
     Returns:
     safe : safety flag.
     """
-
     v_i = e[0]
     v_j = e[1]
 
@@ -180,7 +176,8 @@ def isSafe(G, G2, Gp, e, k, l):
 
             for curr in subsets:
                 if v_i in curr:
-                    # this is a valid subset, check if is has at least k common neighbors
+                    # this is a valid subset
+                    # check if is has at least k common neighbors
                     if len(commonNeighbors(Gp, curr)) < k:
                         return False
 
@@ -209,7 +206,6 @@ def removeEdges(G, G2, costs, k, l):
     Returns :
     Gp : the protected graph
     """
-
     Gp = G2.copy()
 
     # for each "new" edge, in decreasing order of costs
@@ -221,14 +217,12 @@ def removeEdges(G, G2, costs, k, l):
         if l == 1:
             if Gp.degree(e[0]) > k and Gp.degree(e[1]) > k:
                 Gp.remove_edge(*e)
-                # print('Removing edge: ', e)
 
-        else: # typo in the paper?
+        else:
             Gp.remove_edge(*e)
 
             if isSafe(G, G2, Gp, e, k, l):
                 G2.remove_edge(*e)
-                # print('Removing edge: ', e)
             else:
                 Gp.add_edge(*e)
 
