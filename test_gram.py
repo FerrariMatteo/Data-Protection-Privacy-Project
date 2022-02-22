@@ -59,9 +59,7 @@ def runAllTests():
         'uspowergrid',
     ]
     graphs = [nx.read_edgelist(f'graphs/{el}') for el in edgelists]
-    # kvals = [3, 4, 5, 10]
-    kvals = [3, 4, 5]
-    # lvals = [1, 2, 3]
+    kvals = [3, 4, 5, 10]
     lvals = [1, 2]
 
     for (name, G), k, l in product(zip(edgelists, graphs), kvals, lvals):
