@@ -41,7 +41,6 @@ def commonNeighbors(G, V):
     if len(V) < 1:
         return None
 
-    # TODO: currently assuming that |V| >= 1
     com = set(G.neighbors(V[0]))
 
     for v in V[1:]:
@@ -81,11 +80,9 @@ def addEdges(G, k, l, n):
     dist = 1
 
     # precompute the distances between nodes, need only to lookup during execution
-    # TODO: is this the most efficient approach? gets pretty big for large n
     node_dist = dict(nx.all_pairs_shortest_path_length(G))
 
     # used to access the costs matrix if node names are not integers in [0, n-1]
-    # TODO: is there another way to do this?
     node_index_mapping = {n: i for n, i in zip(G2.nodes(), range(n))}
 
     if l == 1:
@@ -209,7 +206,7 @@ def removeEdges(G, G2, costs, k, l):
     Gp = G2.copy()
 
     # for each "new" edge, in decreasing order of costs
-    new_edges = G2.edges - G.edges  # TODO: EdgeView supports set operations, check where we can use them in previous impl.
+    new_edges = G2.edges - G.edges
     node_index_mapping = {n: i for n, i in zip(G2.nodes(), range(G2.order()))}
     new_edges = sorted(new_edges, key=lambda x: int(costs[node_index_mapping[x[0]]][node_index_mapping[x[1]]]), reverse=True)
 
